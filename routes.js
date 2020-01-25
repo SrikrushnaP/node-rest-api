@@ -5,6 +5,32 @@ const User      = require('./models/user');
 
 const db = require('./db');//The vale we are not used directly here, it's using in user.js file
 
+const jwt = require("jsonwebtoken");
+
+// Return a JWT token
+function returnJwt(id){
+    let payload = { subject: id }
+    let token = jwt.sign(payload, 'secretKey')
+    return {token};
+}
+
+function verifyToken(req, res, next){
+    // let token = req.headers.Authorization;
+    let token = req.headers.authorization;    
+    if(!token){
+        return res.status(401).send('Unauthorised access 1');
+    }
+    let tokenWithotBearer = token.split(' ')[1];
+    if( tokenWithotBearer === 'null'){
+        return res.status(401).send('Unauthorised access 2');
+    }
+    let payload = jwt.verify(tokenWithotBearer , 'secretKey');
+    if(!payload){
+        return res.status(401).send('Unauthorised access 3');
+    }
+    req.payload = payload.subject
+    next()
+}
 router.get('/', (req, res)=>{
     res.send('From API Route')
 })
@@ -142,7 +168,7 @@ router.post('/register', (req, res) => {
     })
 })
 
-router.get('/users', (req, res) => {
+router.get('/users', verifyToken, (req, res) => {
     User.find((error, users) => {
         if(error){
             console.log('Oops..! some error while extracting data'); 
@@ -197,6 +223,27 @@ router.delete('/user', (req, res) => {
                         res.status(200).send(user); 
                     }
                 })            
+            }
+        }
+    })
+})
+
+router.post('/login', (req, res) => {
+    let userData = req.body;
+
+    User.findOne({email: userData.email}, (error, user) => {
+        if(error){
+            console.log('Oops..! some error while extracting data'); 
+            // console.log("Error", err);
+        } else {
+            if(!user){
+                res.status(401).send('Eail not registered with us')
+            } else if(user.password !== userData.password) {
+                res.status(401).send('Invalid password')
+            } else {
+                res.status(200).send(returnJwt(user._id))
+                // console.log("returnJwt(user._id)", returnJwt(user._id))
+                
             }
         }
     })
