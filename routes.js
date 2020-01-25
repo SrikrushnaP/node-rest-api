@@ -1,6 +1,10 @@
 const express   = require('express');
 const router    = express.Router();
 
+const User      = require('./models/user'); 
+
+const db = require('./db');
+
 router.get('/', (req, res)=>{
     res.send('From API Route')
 })
@@ -123,6 +127,19 @@ router.get('/event/:id_', (req, res) => {
         }
     ]
     res.json(events[id]);
+})
+
+router.post('/register', (req, res) => {
+    let userData = req.body;
+    let user = new User(userData);
+    user.save((error, registeredUser) => {
+        if(error){
+            console.log('Oops..! some error while inserting data'); 
+            // console.log("Error", err);
+        } else {
+            res.status(200).send(registeredUser);
+        }
+    })
 })
 
 module.exports = router;
